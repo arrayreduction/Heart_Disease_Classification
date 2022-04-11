@@ -49,14 +49,15 @@ def eda(df):
     sx = sx[ch.values != 0]
     ch = ch[ch.values != 0]
 
-    #Get the index matched sexes
-
+    #Test normality
     sm.qqplot(ch, line='45', fit=True)
     plt.show()
 
     ks_test = smdiag.kstest_normal(ch, dist='norm')
     print(f'KS test for chloresterol: {ks_test}\n')
 
+
+    #Test variance
     sns.boxplot(x=sx, y=ch)
     plt.show()
 
