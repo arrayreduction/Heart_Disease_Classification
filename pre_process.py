@@ -1,6 +1,17 @@
 import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
 
-def eda():
-    
+def eda(df):
+    print(df.head())
+    print(df.info())
 
-eda()
+    sns.pairplot(df)
+    plt.show()
+
+    return
+
+def main():
+    eda(df=pd.read_csv("heart.csv"))
+
+    return
