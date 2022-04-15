@@ -3,6 +3,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
 import statsmodels.stats.diagnostic as smdiag
+from scipy.stats import mannwhitneyu
 
 def eda(df):
     '''Exploratory Data Analysis (EDA)'''
@@ -40,7 +41,7 @@ def eda(df):
     print(counts, "\n")
 
     #Check parametic assumtions for chloresterol, ready
-    #to either run independent t-test or one-way ANOVA test with male/female
+    #to either run independent t-test or alternative test with male/female
 
     #Drop zeros, these aren't part of the "true" distribution, they are to be inputed
     #And get the index match sexes
@@ -54,17 +55,54 @@ def eda(df):
     plt.show()
 
     ks_test = smdiag.kstest_normal(ch, dist='norm')
-    print(f'KS test for chloresterol: {ks_test}\n')
+    print(f'K-S test for chloresterol: {ks_test}\n')
 
 
     #Test variance
     sns.boxplot(x=sx, y=ch)
     plt.show()
 
+    #Fails parametric contraints on normaliry grounds
+    #Therefore, will procede using Mann Whitney U Test
+
+    male_ch = ch[sx == 'M']
+    female_ch = ch[sx == 'F']
+
+    U, p = mannwhitneyu(male_ch, female_ch, method="auto")
+    print(f'Mann Witney U test for chloresterol male/female groups: ({U}, {p})')
+
     return
 
 def pre_processing(df):
     '''Perform preprocessing on the data set according to the EDA'''
+
+    df = df.copy()
+
+    #Impute zero values in Cholesterol by male/female groups
+    #as EDA showed significate diffence in thier distribution
+
+    male_ch = df[df['Sex'] == 'M']['Cholesterol']
+    male_ch = male_ch[male_ch != 0]
+    mu_male = male_ch.mean()
+    print(f'Male mean ch {mu_male}')
+
+    female_ch = df[df['Sex'] == 'F']['Cholesterol']
+    female_ch = female_ch[female_ch != 0]
+    mu_female = female_ch.mean()
+    print(f'Female mean ch {mu_female}')
+
+    #df.where replaces when condition resolves false , therefore need to flip our condtion
+    df['Cholesterol'].where((df['Sex'] == 'M') | (df['Cholesterol'] != 0), mu_female, inplace=True)
+    df['Cholesterol'].where((df['Sex'] == 'F') | (df['Cholesterol'] != 0), mu_male, inplace=True)
+
+    #Impute zero value in resting BP
+    resting_bp = df[df['RestingBP'] != 0]['RestingBP']
+    mu_bp = resting_bp.mean()
+    print(f'Mean bp {mu_bp}')
+    
+    df['RestingBP'].where((df['RestingBP'] != 0), mu_bp, inplace=True)
+
+    df.to_excel("test_mean.xlsx")
 
     return df
 
