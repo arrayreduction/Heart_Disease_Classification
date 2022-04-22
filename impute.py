@@ -1,5 +1,5 @@
 def impute_ch(df, verbose=False):
-    '''Perform preprocessing on the data set according to the EDA'''
+    '''Perform imputation on the data set according to the EDA'''
 
     df = df.copy()
 
