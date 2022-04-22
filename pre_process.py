@@ -21,6 +21,11 @@ def eda(df):
     sns.pairplot(df, corner=True)
     plt.show()
 
+    #create correlation plot
+    cr = df.corr()
+    sns.heatmap(cr, center=0, annot=True)
+    plt.show()
+
     #check for nans
     #Print series containing column:any(NaN) pairs
     #If any NaNs exist, create df of them
@@ -101,8 +106,6 @@ def pre_processing(df):
     print(f'Mean bp {mu_bp}')
     
     df['RestingBP'].where((df['RestingBP'] != 0), mu_bp, inplace=True)
-
-    df.to_excel("test_mean.xlsx")
 
     return df
 
