@@ -16,14 +16,16 @@ def eda(df):
     for i, column in enumerate(df.columns, 1):
         plt.subplot(4,3,i)
         sns.histplot(df[column])
+        plt.suptitle("Histograms of feature and target variables")
 
     #create pairplot
     sns.pairplot(df, corner=True)
+    plt.suptitle("Pair Plot of feature and target variables")
     plt.show()
 
     #create correlation plot
     cr = df.corr()
-    sns.heatmap(cr, center=0, annot=True)
+    sns.heatmap(cr, center=0, annot=True).set(title="Correlations of feature and target variables")
     plt.show()
 
     #check for nans
@@ -62,12 +64,11 @@ def eda(df):
     ks_test = smdiag.kstest_normal(ch, dist='norm')
     print(f'K-S test for chloresterol: {ks_test}\n')
 
-
     #Test variance
-    sns.boxplot(x=sx, y=ch)
+    sns.boxplot(x=sx, y=ch).set(title="Chloresterol for male and female patients")
     plt.show()
 
-    #Fails parametric contraints on normaliry grounds
+    #Fails parametric contraints on normality grounds
     #Therefore, will procede using Mann Whitney U Test
 
     male_ch = ch[sx == 'M']
@@ -77,44 +78,3 @@ def eda(df):
     print(f'Mann Witney U test for chloresterol male/female groups: ({U}, {p})')
 
     return
-
-def pre_processing(df):
-    '''Perform preprocessing on the data set according to the EDA'''
-
-    df = df.copy()
-
-    #Impute zero values in Cholesterol by male/female groups
-    #as EDA showed significate diffence in thier distribution
-
-    male_ch = df[df['Sex'] == 'M']['Cholesterol']
-    male_ch = male_ch[male_ch != 0]
-    mu_male = male_ch.mean()
-    print(f'Male mean ch {mu_male}')
-
-    female_ch = df[df['Sex'] == 'F']['Cholesterol']
-    female_ch = female_ch[female_ch != 0]
-    mu_female = female_ch.mean()
-    print(f'Female mean ch {mu_female}')
-
-    #df.where replaces when condition resolves false , therefore need to flip our condtion
-    df['Cholesterol'].where((df['Sex'] == 'M') | (df['Cholesterol'] != 0), mu_female, inplace=True)
-    df['Cholesterol'].where((df['Sex'] == 'F') | (df['Cholesterol'] != 0), mu_male, inplace=True)
-
-    #Impute zero value in resting BP
-    resting_bp = df[df['RestingBP'] != 0]['RestingBP']
-    mu_bp = resting_bp.mean()
-    print(f'Mean bp {mu_bp}')
-    
-    df['RestingBP'].where((df['RestingBP'] != 0), mu_bp, inplace=True)
-
-    return df
-
-def main(run_eda=False):
-    df = pd.read_csv("heart.csv")
-
-    if run_eda:
-        eda(df)
-
-    df = pre_processing(df)
-
-    return df
