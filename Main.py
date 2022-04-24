@@ -86,20 +86,21 @@ def main():
         },
         {
             'drop_col':['passthrogh', drop_col_transformer([3])],
-            'clf':[XGBClassifier()],
+            'clf':[XGBClassifier(use_label_encoder=False)],
             'clf__n_estimators':[100, 250, 500],
             'clf__min_child_weight':[1, 3, 5, 10],
             'clf__learning_rate': [1, 0.1, 0.01, 0.001],
             'clf__max_depth': [3, 4, 5, 8, 10, None],
             'clf__subsample': [0.6, 0.8, 1.0],
             'clf__colsample_bytree': [0.6, 0.8, 1.0],
-            'clf__gamma': gamma
+            'clf__gamma': gamma,
+            'clf__eval_metric':['logloss']
         }
     ]
 
     #Just a test for the moment, may not stick with this CV method or the f1 metric
 
-    grid = GridSearchCV(pipe, n_jobs=7, param_grid=param_grid, cv=10, scoring='f1', verbose=2)
+    grid = GridSearchCV(pipe, n_jobs=7, param_grid=param_grid, cv=10, scoring='f1', verbose=0)
     grid.fit(X, y)
     results = pd.DataFrame(grid.cv_results_)
     print(results)
