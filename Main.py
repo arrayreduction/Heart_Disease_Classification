@@ -4,11 +4,12 @@ from impute import impute_ch
 from transformers import drop_col_transformer
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from xgboost import XGBClassifier
+from pickle import dump, load
 
 def main():
     RUN_EDA = False
@@ -20,11 +21,12 @@ def main():
     
     df = impute_ch(df)
 
-    #ADD TEST TRAIN SPLIT? OR JUST RELY ON CV WITHOUT HELD OUT? TBC
-
     #Split into X and y
     X = df.drop(columns=['HeartDisease'])
     y = df['HeartDisease']
+
+    #Split into test and train
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=347)
 
     #Make Column Transformer for scaling numerical features (Min/Max 0 to 1)
     #and one hot encoding categorical features
@@ -66,6 +68,8 @@ def main():
 
     C = [1, 10, 100]
     gamma = [0.001, 0.01, 0.1, 1, 10]
+    gamma_svm = gamma.copy()
+    gamma_svm.append('scale')
 
     param_grid = [
         {
@@ -82,10 +86,11 @@ def main():
             'clf':[SVC()],
             'clf__C':C,
             'clf__kernel':['linear', 'rbf'],
-            'clf__gamma':gamma
+            'clf__gamma':gamma_svm,
+            'clf__class_weight':['balanced', None]
         },
         {
-            'drop_col':['passthrogh', drop_col_transformer([3])],
+            'drop_col':['passthrough', drop_col_transformer([3])],
             'clf':[XGBClassifier(use_label_encoder=False)],
             'clf__n_estimators':[100, 250, 500],
             'clf__min_child_weight':[1, 3, 5, 10],
@@ -98,12 +103,22 @@ def main():
         }
     ]
 
-    #Just a test for the moment, may not stick with this CV method or the f1 metric
+    #Search over the parameters
 
-    grid = GridSearchCV(pipe, n_jobs=7, param_grid=param_grid, cv=10, scoring='f1', verbose=0)
+    scoring={"AUC":'roc_auc', "Accuracy":'accuracy', "F1":'f1', "Prec":'precision', "Recall":'recall'}
+    grid = GridSearchCV(pipe, n_jobs=7, param_grid=param_grid, cv=10, scoring=scoring, refit='Recall', verbose=0)
     grid.fit(X, y)
-    results = pd.DataFrame(grid.cv_results_)
-    print(results)
+    results = grid.cv_results_
+
+    #Dump results to disk, so we don't have to re-run the CV
+    with open("results_df.pickle", 'wb') as file:
+        dump(results, file)
+
+    df_results = pd.DataFrame(results)
+    print(df_results)
+
+    #Also push to excel
+    df_results.to_excel("cv_results.xlsx")
 
     #litte bit of code for dumping the result header, to see what's available
     #for col in results.columns:
