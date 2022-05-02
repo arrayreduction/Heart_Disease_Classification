@@ -13,6 +13,7 @@ from pickle import dump, load
 
 def main():
     RUN_EDA = False
+    INITIAL_FIT = False
 
     df = pd.read_csv("heart.csv")
 
@@ -105,20 +106,30 @@ def main():
 
     #Search over the parameters
 
-    scoring={"AUC":'roc_auc', "Accuracy":'accuracy', "F1":'f1', "Prec":'precision', "Recall":'recall'}
-    grid = GridSearchCV(pipe, n_jobs=7, param_grid=param_grid, cv=10, scoring=scoring, refit='Recall', verbose=0)
-    grid.fit(X, y)
-    results = grid.cv_results_
+    if INITIAL_FIT:
+        scoring={"AUC":'roc_auc', "Accuracy":'accuracy', "F1":'f1', "Prec":'precision', "Recall":'recall'}
+        grid = GridSearchCV(pipe, n_jobs=7, param_grid=param_grid, cv=10, scoring=scoring, refit='f1', verbose=0)
+        grid.fit(X_train, y_train)
+        results = grid.cv_results_
 
-    #Dump results to disk, so we don't have to re-run the CV
-    with open("results_df.pickle", 'wb') as file:
-        dump(results, file)
+        #Dump results to disk, so we don't have to re-run the CV
+        with open("results_df.pickle", 'wb') as file:
+            dump(results, file)
+    else:
+        with open("results_df.pickle", 'rb') as file:
+            results = load(file)
 
     df_results = pd.DataFrame(results)
     print(df_results)
 
+    LR = df_results[df_results['param_clf'].astype(str).str.contains("LogisticRegression", regex=False)]
+    XGB = df_results[df_results['param_clf'].astype(str).str.contains("XGBClassifier", regex=False)]
+    SV = df_results[df_results['param_clf'].astype(str).str.contains("SVC", regex=False)]
+
+    
+
     #Also push to excel
-    df_results.to_excel("cv_results.xlsx")
+    #df_results.to_excel("cv_results.xlsx")
 
     #litte bit of code for dumping the result header, to see what's available
     #for col in results.columns:
