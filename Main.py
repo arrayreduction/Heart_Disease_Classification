@@ -114,7 +114,7 @@ def main():
 
     if INITIAL_FIT:
         scoring={"AUC":'roc_auc', "Accuracy":'accuracy', "F1":'f1', "Prec":'precision', "Recall":'recall'}
-        grid = GridSearchCV(pipe, n_jobs=7, param_grid=param_grid, cv=10, scoring=scoring, refit='f1', verbose=0)
+        grid = GridSearchCV(pipe, n_jobs=7, param_grid=param_grid, cv=10, scoring=scoring, refit='F1', verbose=0)
         grid.fit(X_train, y_train)
         results = grid.cv_results_
 
