@@ -183,6 +183,15 @@ def main():
     print(XGB_best_params, "\n")
     print(SV_best_params, "\n")
 
+    print()
+
+    print(f"Logistic train: f1 {LR_best.mean_test_F1}, prec {LR_best.mean_test_Prec}, recall {LR_best.mean_test_Recall}, \
+        accuracy {LR_best.mean_test_Accuracy}")
+    print(f"XGB train: f1 {XGB_best.mean_test_F1}, prec {XGB_best.mean_test_Prec}, recall {XGB_best.mean_test_Recall}, \
+        accuracy {XGB_best.mean_test_Accuracy}")
+    print(f"SVM train: f1 {SV_best.mean_test_F1}, prec {SV_best.mean_test_Prec}, recall {SV_best.mean_test_Recall}, \
+        accuracy {SV_best.mean_test_Accuracy}")
+
     #Create an ensemble/stacked model using the three existing best models
 
     level0 = []
@@ -201,7 +210,7 @@ def main():
     rec_test = recall_score(y_true=y_train,y_pred=y_pred)
     #auc_test = roc_auc_score(y_true=y_train, y_pred=y_pred)    #Requires predict_proba
     acc_test = accuracy_score(y_true=y_train,y_pred=y_pred)
-    print(f"Stacked Test: f1 {f1_test}, prec {prec_test}, recall {rec_test}, accuracy {acc_test}")
+    print(f"Stacked Train: f1 {f1_test}, prec {prec_test}, recall {rec_test}, accuracy {acc_test}")
 
     #litte bit of code for dumping the result header, to see what's available
     #for col in results.columns:
