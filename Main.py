@@ -38,11 +38,12 @@ def main():
     #Make Column Transformer for scaling numerical features (Min/Max 0 to 1)
     #and one hot encoding categorical features
 
+    #Note, FastingBS is technically categorical, but is already 0/1 encoded. 
+    #As minmax scaler uses y = (x – min) / (max – min), 0/1 encodings are unaltered
+    #and we have just wasted a small amount of CPU time
     num_features = ['Age', 'RestingBP', 'Cholesterol', 'FastingBS', 'MaxHR', 'Oldpeak']
     num_transformer = Pipeline(
         [
-            #potentially turn my imputer into a class and add here
-            #('imputer', ),
             ('scaler', MinMaxScaler((0,1)))
         ]
     )
@@ -50,9 +51,6 @@ def main():
     cat_features = ['Sex', 'ChestPainType', 'RestingECG', 'ExerciseAngina', 'ST_Slope']
     cat_transformer = Pipeline(
         [
-            #CONSIDER, DO WE NEED TO LOOK AT LABEL ENCODER FOR TREE BASED METHODS?
-            #COULD change 'prep' in pipeline to passthrough, and select different
-            #Preprocessing column transformers with parameters
             ('ohe', OneHotEncoder())
         ]
     )
