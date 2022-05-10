@@ -2,12 +2,11 @@ import pandas as pd
 from eda import eda
 import yaml
 from yaml.loader import FullLoader
-import re
 from impute import impute_ch
 from transformers import drop_col_transformer
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
-from sklearn.metrics import f1_score, precision_score, recall_score, roc_auc_score, accuracy_score
+from sklearn.metrics import f1_score, precision_score, recall_score, roc_auc_score, accuracy_score, ConfusionMatrixDisplay
 from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 from sklearn.linear_model import LogisticRegression
@@ -16,6 +15,7 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.svm import SVC
 from xgboost import XGBClassifier
 from pickle import dump, load
+import matplotlib.pyplot as plt
 
 def main():
     RUN_EDA = False
@@ -247,13 +247,13 @@ def main():
     param_grid = [{
         'final_estimator':[LogisticRegression()],
         'final_estimator__C': C,
-        #'final_estimator__penalty':['none', 'l2', 'l1', 'elasticnet'],
-        #'final_estimator__solver':['newton-cg', 'lbfgs', 'liblinear', 'sag', 'saga']
+        'final_estimator__penalty':['none', 'l2', 'l1', 'elasticnet'],
+        'final_estimator__solver':['newton-cg', 'lbfgs', 'liblinear', 'sag', 'saga'],
         'passthrough':[False,True]
         },
         {
         'final_estimator':[MultinomialNB()],
-        #'final_estimator__alpha':alpha,
+        'final_estimator__alpha':alpha,
         'passthrough':[False,True]
         }]
 
@@ -324,6 +324,22 @@ def main():
     acc_test = accuracy_score(y_true=y_test,y_pred=y_pred)
     print(f"SV Test: f1 {f1_test}, prec {prec_test}, recall {rec_test}, accuracy {acc_test}, AUC {auc_test}")
 
+    #Get a set of confustion matrices for testing data
+    clf = stack.fit(X_test, y_test)
+    ConfusionMatrixDisplay.from_estimator(clf, X_test, y_test)
+    plt.show()
+
+    clf = pipe.set_params(**LR_best_params).fit(X_train, y_train)
+    ConfusionMatrixDisplay.from_estimator(clf, X_test, y_test)
+    plt.show()
+
+    clf = pipe.set_params(**XGB_best_params).fit(X_train, y_train)
+    ConfusionMatrixDisplay.from_estimator(clf, X_test, y_test)
+    plt.show()
+
+    clf = pipe.set_params(**SV_best_params).fit(X_train, y_train)
+    ConfusionMatrixDisplay.from_estimator(clf, X_test, y_test)
+    plt.show()
 
 if __name__ == '__main__':
     main()
