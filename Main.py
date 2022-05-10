@@ -12,7 +12,7 @@ from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import StackingClassifier
-from sklearn.naive_bayes import CategoricalNB
+from sklearn.naive_bayes import MultinomialNB
 from sklearn.svm import SVC
 from xgboost import XGBClassifier
 from pickle import dump, load
@@ -142,6 +142,7 @@ def main():
 
         #Get a dictionary representation of the parameters
         #Cast to sting, strip index and leading space, then evaluate to dict
+        #NB this isn't the best way of doing this, just the way I thought of at the time.
         pd.set_option('max_colwidth', 1500)
         LR_best_params = LR_best['params'].to_string(index=False)
         XGB_best_params = XGB_best['params'].to_string(index=False)
@@ -152,7 +153,8 @@ def main():
         XGB_best_params = yaml.load(XGB_best_params, Loader=FullLoader)
         SV_best_params = yaml.load(SV_best_params, Loader=FullLoader)
 
-        #Deal with the junk with got added to the paramaters
+        #Deal with the junk with got added to the paramaters, these are mostly duplicated keys
+        #The end result is the best model for each classifier
         LR_best_params.update({'clf': LogisticRegression()})
         XGB_best_params.update({'clf': XGBClassifier()})
         SV_best_params.update({'clf': SVC(), 'clf__class_weight': None})
@@ -223,35 +225,105 @@ def main():
     print()
 
     print(f"Logistic train: f1 {LR_best.mean_test_F1}, prec {LR_best.mean_test_Prec}, recall {LR_best.mean_test_Recall}, \
-        accuracy {LR_best.mean_test_Accuracy}")
+        accuracy {LR_best.mean_test_Accuracy}, AUC {LR_best.mean_test_AUC}")
     print(f"XGB train: f1 {XGB_best.mean_test_F1}, prec {XGB_best.mean_test_Prec}, recall {XGB_best.mean_test_Recall}, \
-        accuracy {XGB_best.mean_test_Accuracy}")
+        accuracy {XGB_best.mean_test_Accuracy}, AUC {XGB_best.mean_test_AUC}")
     print(f"SVM train: f1 {SV_best.mean_test_F1}, prec {SV_best.mean_test_Prec}, recall {SV_best.mean_test_Recall}, \
-        accuracy {SV_best.mean_test_Accuracy}")
+        accuracy {SV_best.mean_test_Accuracy}, AUC {SV_best.mean_test_AUC}")
 
     #Create an ensemble/stacked model using the three existing best models
+    #We reuse the existing pipeline for the first level
 
     level0 = []
-    #pipe_Lr = pipe.set_params(clf=LogisticRegression(),drop_col='passthrough')
-    #level0.append(('LR', pipe_Lr))
     level0.append(('LR', pipe.set_params(**LR_best_params)))
     level0.append(('XGB', pipe.set_params(**XGB_best_params)))
     level0.append(('SV', pipe.set_params(**SV_best_params)))
-    level1 = LogisticRegression()
-    stack = StackingClassifier(estimators=level0, final_estimator=level1, cv=10)
+    level1 = "passthrough"
+    stack = StackingClassifier(estimators=level0, final_estimator=level1)
+
+    C = [1, 10, 25, 50, 100]
+    alpha = [10, 1 , 0.1, 0.001, 0.0001]
+
+    param_grid = [{
+        'final_estimator':[LogisticRegression()],
+        'final_estimator__C': C,
+        #'final_estimator__penalty':['none', 'l2', 'l1', 'elasticnet'],
+        #'final_estimator__solver':['newton-cg', 'lbfgs', 'liblinear', 'sag', 'saga']
+        'passthrough':[False,True]
+        },
+        {
+        'final_estimator':[MultinomialNB()],
+        #'final_estimator__alpha':alpha,
+        'passthrough':[False,True]
+        }]
+
+    scoring={"AUC":'roc_auc', "Accuracy":'accuracy', "F1":'f1', "Prec":'precision', "Recall":'recall'}
+    grid = GridSearchCV(estimator=stack, param_grid=param_grid, cv=10, scoring=scoring, refit='F1', n_jobs=7, verbose=1)
+    grid.fit(X_train, y_train)
+    results = pd.DataFrame(grid.cv_results_)
+    best_index_ = grid.best_index_
+
+    f1_test = results['mean_test_F1'][best_index_]
+    prec_test = results['mean_test_Prec'][best_index_]
+    rec_test = results['mean_test_Recall'][best_index_]
+    acc_test = results['mean_test_Accuracy'][best_index_]
+    auc_test = results['mean_test_AUC'][best_index_]
+
+    print(f"Stacked Train: f1 {f1_test}, prec {prec_test}, recall {rec_test}, accuracy {acc_test}, AUC {auc_test} \n")
+
+    #Now put each model against the validation set, to see if there's evidence of overfitting on the
+    #training set. We retrain on the whole training set and test against the validation set
+
+    final_est = grid.best_estimator_.final_estimator
+    stack.final_estimator = final_est
+
+    print("Best stacked estimator: \n")
+    print(final_est)
+
     stack.fit(X_train, y_train)
-    y_pred = stack.predict(X_train)
+    y_pred = stack.predict(X_test)
+    y_proba = stack.predict_proba(X_test)[:, 1]
 
-    f1_test = f1_score(y_true=y_train,y_pred=y_pred)
-    prec_test = precision_score(y_true=y_train,y_pred=y_pred)
-    rec_test = recall_score(y_true=y_train,y_pred=y_pred)
-    #auc_test = roc_auc_score(y_true=y_train, y_pred=y_pred)    #Requires predict_proba
-    acc_test = accuracy_score(y_true=y_train,y_pred=y_pred)
-    print(f"Stacked Train: f1 {f1_test}, prec {prec_test}, recall {rec_test}, accuracy {acc_test}")
+    f1_test = f1_score(y_true=y_test,y_pred=y_pred)
+    prec_test = precision_score(y_true=y_test,y_pred=y_pred)
+    rec_test = recall_score(y_true=y_test,y_pred=y_pred)
+    auc_test = roc_auc_score(y_true=y_test, y_score=y_proba)    #Requires predict_proba
+    acc_test = accuracy_score(y_true=y_test,y_pred=y_pred)
+    print(f"Stacked Test: f1 {f1_test}, prec {prec_test}, recall {rec_test}, accuracy {acc_test}, AUC {auc_test}")
 
-    #litte bit of code for dumping the result header, to see what's available
-    #for col in results.columns:
-    #    print(col)
+    pipe.set_params(**LR_best_params).fit(X_train, y_train)
+    y_pred = pipe.set_params(**LR_best_params).predict(X_test)
+    y_proba = pipe.set_params(**LR_best_params).predict_proba(X_test)[:, 1]
+
+    f1_test = f1_score(y_true=y_test,y_pred=y_pred)
+    prec_test = precision_score(y_true=y_test,y_pred=y_pred)
+    rec_test = recall_score(y_true=y_test,y_pred=y_pred)
+    auc_test = roc_auc_score(y_true=y_test, y_score=y_proba)    #Requires predict_proba
+    acc_test = accuracy_score(y_true=y_test,y_pred=y_pred)
+    print(f"LR Test: f1 {f1_test}, prec {prec_test}, recall {rec_test}, accuracy {acc_test}, AUC {auc_test}")
+
+    pipe.set_params(**XGB_best_params, clf__use_label_encoder=False).fit(X_train, y_train)
+    y_pred = pipe.set_params(**XGB_best_params).predict(X_test)
+    y_proba = pipe.set_params(**XGB_best_params).predict_proba(X_test)[:, 1]
+
+    f1_test = f1_score(y_true=y_test,y_pred=y_pred)
+    prec_test = precision_score(y_true=y_test,y_pred=y_pred)
+    rec_test = recall_score(y_true=y_test,y_pred=y_pred)
+    auc_test = roc_auc_score(y_true=y_test, y_score=y_proba)    #Requires predict_proba
+    acc_test = accuracy_score(y_true=y_test,y_pred=y_pred)
+    print(f"XGB Test: f1 {f1_test}, prec {prec_test}, recall {rec_test}, accuracy {acc_test}, AUC {auc_test}")
+
+    pipe.set_params(**SV_best_params, clf__probability=True).fit(X_train, y_train)
+    y_pred = pipe.set_params(**SV_best_params).predict(X_test)
+    y_proba = pipe.set_params(**SV_best_params).predict_proba(X_test)[:, 1]
+
+    f1_test = f1_score(y_true=y_test,y_pred=y_pred)
+    prec_test = precision_score(y_true=y_test,y_pred=y_pred)
+    rec_test = recall_score(y_true=y_test,y_pred=y_pred)
+    auc_test = roc_auc_score(y_true=y_test, y_score=y_proba)    #Requires predict_proba
+    acc_test = accuracy_score(y_true=y_test,y_pred=y_pred)
+    print(f"SV Test: f1 {f1_test}, prec {prec_test}, recall {rec_test}, accuracy {acc_test}, AUC {auc_test}")
+
 
 if __name__ == '__main__':
     main()
