@@ -118,70 +118,107 @@ def main():
         grid.fit(X_train, y_train)
         results = grid.cv_results_
 
-        #Dump results to disk, so we don't have to re-run the CV
+        df_results = pd.DataFrame(results)
+
+        #Push to excel for exmination
+        #df_results.to_excel("cv_results.xlsx")
+
+        #Get best parameters for each model
+        LR = df_results[df_results['param_clf'].astype(str).str.contains("LogisticRegression", regex=False)]
+        XGB = df_results[df_results['param_clf'].astype(str).str.contains("XGBClassifier", regex=False)]
+        SV = df_results[df_results['param_clf'].astype(str).str.contains("SVC", regex=False)]
+
+        LR_best = LR[LR['rank_test_F1'] == LR['rank_test_F1'].min()]
+        XGB_best = XGB[XGB['rank_test_F1'] == XGB['rank_test_F1'].min()]
+        SV_best = SV[SV['rank_test_F1'] == SV['rank_test_F1'].min()]
+
+        print(LR_best.rank_test_F1, XGB_best.rank_test_F1, SV_best.rank_test_F1, "\n")
+        print(LR_best.mean_test_F1, XGB_best.mean_test_F1, SV_best.mean_test_F1, "\n")
+
+        #Examination of the 24 tied logisitic regression models (viewing table in excel)
+        #shows they are tied in all scored metrics except AUC, so get the best of the tied results by AUC_ROC
+
+        LR_best = LR_best[LR_best['rank_test_AUC'] == LR_best['rank_test_AUC'].min()]
+
+        #Get a dictionary representation of the parameters
+        #Cast to sting, strip index and leading space, then evaluate to dict
+        pd.set_option('max_colwidth', 1500)
+        LR_best_params = LR_best['params'].to_string(index=False)
+        XGB_best_params = XGB_best['params'].to_string(index=False)
+        SV_best_params = SV_best['params'].to_string(index=False)
+        pd.reset_option('max_colwidth')
+
+        LR_best_params = yaml.load(LR_best_params, Loader=FullLoader)
+        XGB_best_params = yaml.load(XGB_best_params, Loader=FullLoader)
+        SV_best_params = yaml.load(SV_best_params, Loader=FullLoader)
+
+        #Deal with the junk with got added to the paramaters
+        LR_best_params.update({'clf': LogisticRegression()})
+        XGB_best_params.update({'clf': XGBClassifier()})
+        SV_best_params.update({'clf': SVC(), 'clf__class_weight': None})
+        del SV_best_params['gamma=0.001)']
+
+        def del_all(dictionary, to_remove):
+            """Remove list of elements from mapping."""
+            for key in to_remove:
+                del dictionary[key]
+
+        remove = ['booster=None','colsample_bylevel=None','colsample_bynode=None','colsample_bytree=None',
+                            'enable_categorical=False','gamma=None','gpu_id=None','importance_type=None','interaction_constraints=None',
+                            'learning_rate=None','max_delta_step=None','max_depth=None', 'min_child_weight=None', 'missing=nan',
+                            'monotone_constraints=None', 'n_estimators=100', 'n_jobs=None', 'num_parallel_tree=None', 'predictor=None',
+                            'random_state=None','reg_alpha=None','reg_lambda=None','scale_pos_weight=None','subsample=None','tree_method=None',
+                            'use_label_encoder=False','validate_parameters=None','verbosity=None)']
+        
+        del_all(XGB_best_params, remove)
+
+        print(LR_best_params, "\n")
+        print(XGB_best_params, "\n")
+        print(SV_best_params, "\n")
+
+        #Dump best_params to disk, so we don't have to re-run post processing
+        with open("LR_best_params.pickle", 'wb') as file:
+            dump(LR_best_params, file)
+        
+        with open("XGB_best_params.pickle", 'wb') as file:
+            dump(XGB_best_params, file)
+        
+        with open("SV_best_params.pickle", 'wb') as file:
+            dump(SV_best_params, file)
+
+        with open("LR_best.pickle", 'wb') as file:
+            dump(LR_best, file)
+        
+        with open("XGB_best.pickle", 'wb') as file:
+            dump(XGB_best, file)
+        
+        with open("SV_best.pickle", 'wb') as file:
+            dump(SV_best, file)
+
+        #Dump results to disk, so we don't have to re-run the CV at any point
         with open("results_df.pickle", 'wb') as file:
             dump(results, file)
     else:
         with open("results_df.pickle", 'rb') as file:
             results = load(file)
 
-    df_results = pd.DataFrame(results)
+        with open("LR_best_params.pickle", 'rb') as file:
+            LR_best_params = load(file)
 
-    #Also push to excel
-    #df_results.to_excel("cv_results.xlsx")
+        with open("XGB_best_params.pickle", 'rb') as file:
+            XGB_best_params = load(file)
 
-    #Get best parameters for each model
-    LR = df_results[df_results['param_clf'].astype(str).str.contains("LogisticRegression", regex=False)]
-    XGB = df_results[df_results['param_clf'].astype(str).str.contains("XGBClassifier", regex=False)]
-    SV = df_results[df_results['param_clf'].astype(str).str.contains("SVC", regex=False)]
+        with open("SV_best_params.pickle", 'rb') as file:
+            SV_best_params = load(file)
 
-    LR_best = LR[LR['rank_test_F1'] == LR['rank_test_F1'].min()]
-    XGB_best = XGB[XGB['rank_test_F1'] == XGB['rank_test_F1'].min()]
-    SV_best = SV[SV['rank_test_F1'] == SV['rank_test_F1'].min()]
+        with open("LR_best.pickle", 'rb') as file:
+            LR_best = load(file)
 
-    print(LR_best.rank_test_F1, XGB_best.rank_test_F1, SV_best.rank_test_F1, "\n")
-    print(LR_best.mean_test_F1, XGB_best.mean_test_F1, SV_best.mean_test_F1, "\n")
+        with open("XGB_best.pickle", 'rb') as file:
+            XGB_best = load(file)
 
-    #Examination of the 24 tied logisitic regression models (viewing table in excel)
-    #shows they are tied in all scored metrics except AUC, so get the best of the tied results by AUC_ROC
-
-    LR_best = LR_best[LR_best['rank_test_AUC'] == LR_best['rank_test_AUC'].min()]
-
-    #Get a dictionary representation of the parameters
-    #Cast to sting, strip index and leading space, then evaluate to dict
-    pd.set_option('max_colwidth', 1500)
-    LR_best_params = LR_best['params'].to_string(index=False)
-    XGB_best_params = XGB_best['params'].to_string(index=False)
-    SV_best_params = SV_best['params'].to_string(index=False)
-    pd.reset_option('max_colwidth')
-
-    LR_best_params = yaml.load(LR_best_params, Loader=FullLoader)
-    XGB_best_params = yaml.load(XGB_best_params, Loader=FullLoader)
-    SV_best_params = yaml.load(SV_best_params, Loader=FullLoader)
-
-    #Deal with the junk with got added to the paramaters
-    LR_best_params.update({'clf': LogisticRegression()})
-    XGB_best_params.update({'clf': XGBClassifier()})
-    SV_best_params.update({'clf': SVC(), 'clf__class_weight': None})
-    del SV_best_params['gamma=0.001)']
-
-    def del_all(dictionary, to_remove):
-      """Remove list of elements from mapping."""
-      for key in to_remove:
-          del dictionary[key]
-
-    remove = ['booster=None','colsample_bylevel=None','colsample_bynode=None','colsample_bytree=None',
-                        'enable_categorical=False','gamma=None','gpu_id=None','importance_type=None','interaction_constraints=None',
-                        'learning_rate=None','max_delta_step=None','max_depth=None', 'min_child_weight=None', 'missing=nan',
-                        'monotone_constraints=None', 'n_estimators=100', 'n_jobs=None', 'num_parallel_tree=None', 'predictor=None',
-                        'random_state=None','reg_alpha=None','reg_lambda=None','scale_pos_weight=None','subsample=None','tree_method=None',
-                        'use_label_encoder=False','validate_parameters=None','verbosity=None)']
-    
-    del_all(XGB_best_params, remove)
-
-    print(LR_best_params, "\n")
-    print(XGB_best_params, "\n")
-    print(SV_best_params, "\n")
+        with open("SV_best.pickle", 'rb') as file:
+            SV_best = load(file)
 
     print()
 
