@@ -326,8 +326,7 @@ def main():
     print(f"SV Test: f1 {f1_test}, prec {prec_test}, recall {rec_test}, accuracy {acc_test}, AUC {auc_test}")
 
     #Get a set of confustion matrices for testing data
-    stack.set_params(**grid.best_params_)
-    clf = stack.fit(X_test, y_test)
+    clf = stack.set_params(**grid.best_params_)
     ConfusionMatrixDisplay.from_estimator(clf, X_test, y_test)
     plt.show()
 
