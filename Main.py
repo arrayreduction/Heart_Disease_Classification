@@ -247,13 +247,13 @@ def main():
     param_grid = [{
         'final_estimator':[LogisticRegression()],
         'final_estimator__C': C,
-        'final_estimator__penalty':['none', 'l2', 'l1', 'elasticnet'],
-        'final_estimator__solver':['newton-cg', 'lbfgs', 'liblinear', 'sag', 'saga'],
+        #'final_estimator__penalty':['none', 'l2', 'l1', 'elasticnet'],
+        #'final_estimator__solver':['newton-cg', 'lbfgs', 'liblinear', 'sag', 'saga'],
         'passthrough':[False,True]
         },
         {
         'final_estimator':[MultinomialNB()],
-        'final_estimator__alpha':alpha,
+        #'final_estimator__alpha':alpha,
         'passthrough':[False,True]
         }]
 
@@ -276,9 +276,10 @@ def main():
 
     final_est = grid.best_estimator_.final_estimator
     stack.final_estimator = final_est
+    stack.set_params(**grid.best_params_)
 
     print("Best stacked estimator: \n")
-    print(final_est)
+    print(grid.best_params_)
 
     stack.fit(X_train, y_train)
     y_pred = stack.predict(X_test)
@@ -325,6 +326,7 @@ def main():
     print(f"SV Test: f1 {f1_test}, prec {prec_test}, recall {rec_test}, accuracy {acc_test}, AUC {auc_test}")
 
     #Get a set of confustion matrices for testing data
+    stack.set_params(**grid.best_params_)
     clf = stack.fit(X_test, y_test)
     ConfusionMatrixDisplay.from_estimator(clf, X_test, y_test)
     plt.show()
