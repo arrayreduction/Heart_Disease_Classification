@@ -201,7 +201,7 @@ def main():
     rec_test = recall_score(y_true=y_train,y_pred=y_pred)
     #auc_test = roc_auc_score(y_true=y_train, y_pred=y_pred)    #Requires predict_proba
     acc_test = accuracy_score(y_true=y_train,y_pred=y_pred)
-    print(f"Stacked Test: f1 {f1_test}")
+    print(f"Stacked Test: f1 {f1_test}, prec {prec_test}, recall {rec_test}, accuracy {acc_test}")
 
     #litte bit of code for dumping the result header, to see what's available
     #for col in results.columns:
