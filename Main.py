@@ -247,13 +247,13 @@ def main():
     param_grid = [{
         'final_estimator':[LogisticRegression()],
         'final_estimator__C': C,
-        #'final_estimator__penalty':['none', 'l2', 'l1', 'elasticnet'],
-        #'final_estimator__solver':['newton-cg', 'lbfgs', 'liblinear', 'sag', 'saga'],
+        'final_estimator__penalty':['none', 'l2', 'l1', 'elasticnet'],
+        'final_estimator__solver':['newton-cg', 'lbfgs', 'liblinear', 'sag', 'saga'],
         'passthrough':[False,True]
         },
         {
         'final_estimator':[MultinomialNB()],
-        #'final_estimator__alpha':alpha,
+        'final_estimator__alpha':alpha,
         'passthrough':[False,True]
         }]
 
