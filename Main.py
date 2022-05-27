@@ -247,12 +247,12 @@ def main():
         'final_estimator__C': C,
         'final_estimator__penalty':['none', 'l2', 'l1', 'elasticnet'],
         'final_estimator__solver':['newton-cg', 'lbfgs', 'liblinear', 'sag', 'saga'],
-        'passthrough':[False,True]
+        'passthrough':[False]
         },
         {
         'final_estimator':[MultinomialNB()],
         'final_estimator__alpha':alpha,
-        'passthrough':[False,True]
+        'passthrough':[False]
         }]
 
     scoring={"AUC":'roc_auc', "Accuracy":'accuracy', "F1":'f1', "Prec":'precision', "Recall":'recall'}
