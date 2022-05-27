@@ -47,10 +47,10 @@ def eda(df):
 
     print(counts, "\n")
 
-    #Check parametic assumtions for chloresterol, ready
+    #Check parametric assumtions for chloresterol, ready
     #to either run independent t-test or alternative test with male/female
 
-    #Drop zeros, these aren't part of the "true" distribution, they are to be inputed
+    #Drop zeros, these aren't part of the "true" distribution, they are to be imputed
     #And get the index match sexes
     ch = df['Cholesterol']
     sx = df['Sex']
