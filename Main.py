@@ -325,19 +325,23 @@ def main():
 
     #Get a set of confustion matrices for testing data
     clf = stack.set_params(**grid.best_params_)
-    ConfusionMatrixDisplay.from_estimator(clf, X_test, y_test)
+    cm = ConfusionMatrixDisplay.from_estimator(clf, X_test, y_test)
+    cm.ax_.set_title("Confusion matrix for stacked ensemble classifier")
     plt.show()
 
     clf = pipe.set_params(**LR_best_params).fit(X_train, y_train)
-    ConfusionMatrixDisplay.from_estimator(clf, X_test, y_test)
+    cm = ConfusionMatrixDisplay.from_estimator(clf, X_test, y_test)
+    cm.ax_.set_title("Confusion matrix for logisitic regression classifier")
     plt.show()
 
     clf = pipe.set_params(**XGB_best_params).fit(X_train, y_train)
-    ConfusionMatrixDisplay.from_estimator(clf, X_test, y_test)
+    cm = ConfusionMatrixDisplay.from_estimator(clf, X_test, y_test)
+    cm.ax_.set_title("Confusion matrix for XGBoost classifier")
     plt.show()
 
     clf = pipe.set_params(**SV_best_params).fit(X_train, y_train)
-    ConfusionMatrixDisplay.from_estimator(clf, X_test, y_test)
+    cm = ConfusionMatrixDisplay.from_estimator(clf, X_test, y_test)
+    cm.ax_.set_title("Confusion matrix for support vector machine classifier")
     plt.show()
 
 if __name__ == '__main__':

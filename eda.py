@@ -21,11 +21,13 @@ def eda(df):
     #create pairplot
     sns.pairplot(df, corner=True)
     plt.suptitle("Pair Plot of feature and target variables")
+    plt.tight_layout()
     plt.show()
 
     #create correlation plot
     cr = df.corr()
     sns.heatmap(cr, center=0, annot=True).set(title="Correlations of feature and target variables")
+    plt.tight_layout()
     plt.show()
 
     #check for nans
@@ -47,7 +49,7 @@ def eda(df):
 
     print(counts, "\n")
 
-    #Check parametric assumtions for chloresterol, ready
+    #Check parametric assumtions for cholesterol, ready
     #to either run independent t-test or alternative test with male/female
 
     #Drop zeros, these aren't part of the "true" distribution, they are to be imputed
@@ -58,14 +60,16 @@ def eda(df):
     ch = ch[ch.values != 0]
 
     #Test normality
-    sm.qqplot(ch, line='45', fit=True)
+    _, ax = plt.subplots()
+    ax.set_title("QQ plot for non-zero cholesterol values")
+    sm.qqplot(ch, line='45', fit=True, ax=ax)
     plt.show()
 
     ks_test = smdiag.kstest_normal(ch, dist='norm')
-    print(f'K-S test for chloresterol: {ks_test}\n')
+    print(f'K-S test for cholesterol: {ks_test}\n')
 
     #Test variance
-    sns.boxplot(x=sx, y=ch).set(title="Chloresterol for male and female patients")
+    sns.boxplot(x=sx, y=ch).set(title="Cholesterol for male and female patients")
     plt.show()
 
     #Fails parametric contraints on normality grounds
@@ -75,6 +79,6 @@ def eda(df):
     female_ch = ch[sx == 'F']
 
     U, p = mannwhitneyu(male_ch, female_ch, method="auto")
-    print(f'Mann Witney U test for chloresterol male/female groups: ({U}, {p})')
+    print(f'Mann Witney U test for cholesterol male/female groups: ({U}, {p})')
 
     return
