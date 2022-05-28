@@ -1,6 +1,7 @@
 import numpy as np
+from sklearn.base import BaseEstimator, TransformerMixin
 
-class drop_col_transformer():
+class drop_col_transformer(BaseEstimator, TransformerMixin):
     '''Class to provide a transformer for dropping columns specified at construction, adapted
     code from https://stackoverflow.com/questions/68402691/adding-dropping-column-instance-into-a-pipeline.
      to use numpy arrays for use within sklearn pipeline'''
