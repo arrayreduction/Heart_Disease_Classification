@@ -1,7 +1,7 @@
 # Heart_Disease_Classification
 Heart disease classification modelling based on data from https://www.kaggle.com/fedesoriano/heart-failure-prediction
 
-The project covers exploratory data analysis, data-preprocessing, and model selection.
+The project covers exploratory data analysis, data-preprocessing, and model selection. This is an older project undertaken as part of a BSc module, there are likely to be rough edges.
 
 Main.py the central scipt, all other code are treated as modules for this script. There are two constants which must be set;
 
